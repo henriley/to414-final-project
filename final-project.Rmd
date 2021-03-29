@@ -1,0 +1,18 @@
+---
+title: "Final Project"
+author: "Riley Maher"
+date: "3/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# News Train
+news_train <- read.csv('train.csv')
+head(news_train)
+```
+
+

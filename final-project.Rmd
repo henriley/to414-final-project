@@ -13,6 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tm)
 library(stopwords)
 library(tokenizers)
+library(dplyr)
+library(tidytext)
+library(sentimentr)
 ```
 
 ```{r}
@@ -26,8 +29,10 @@ head(news_train)
 news_train$cleaned_title <- tolower(news_train$title)
 news_train$cleaned_title <- removePunctuation(news_train$cleaned_title)
 news_train$cleaned_title <- stripWhitespace(news_train$cleaned_title)
-# news_train$cleaned_title <- tokenize_words(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
-# news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
+news_train$title_character_length <- lapply(news_train$cleaned_title, nchar)
+news_train$cleaned_title <- tokenize_words(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
+news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
+news_train$title_word_length <- lapply(news_train$cleaned_title, length)
 ```
 
 
@@ -35,23 +40,21 @@ news_train$cleaned_title <- stripWhitespace(news_train$cleaned_title)
 news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
-# news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
-# news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
+news_train$text_sentiment <- sentiment(news_train$cleaned_text)$sentiment
+news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
+news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
+news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
+news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 ```
-
 
 ```{r}
 
-head(news_train)
 ```
 
 # Potential Things to Add
 
 ## Must Haves
--Tokenize Words
--Stem Words
--Lemmatize Words
--Sentence Length by Word/Character
+
 -Bigrams
 -Trigrams
 -Sentiment of Text

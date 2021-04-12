@@ -16,12 +16,17 @@ library(tokenizers)
 library(dplyr)
 library(tidytext)
 library(sentimentr)
+library(gender)
 ```
 
 ```{r}
 # News Train
 news_train <- read.csv('train.csv')
 news_train$id <- NULL
+
+news_test <- read.csv('test.csv')
+news_test$id <- NULL
+
 head(news_train)
 ```
 
@@ -40,7 +45,7 @@ news_train$title_word_length <- lapply(news_train$cleaned_title, length)
 news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
-news_train$text_sentiment <- sentiment(news_train$cleaned_text)$sentiment
+# news_train$text_sentiment <- sentiment(news_train$cleaned_text)$sentiment
 news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
 news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
@@ -48,7 +53,18 @@ news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 ```
 
 ```{r}
+head(news_train_sample)
+```
 
+```{r}
+news_train$cleaned_text[1]
+# paste(, collapse=' ')
+# sentiment('I am madly in love')$sentiment
+```
+
+
+```{r}
+View(news_train)
 ```
 
 # Potential Things to Add
@@ -60,6 +76,5 @@ news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 -Sentiment of Text
 
 ## Nice to Haves
--Gender of Author
+
 -Parts of Speech Count
--Specific Word Count

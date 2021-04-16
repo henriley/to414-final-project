@@ -16,12 +16,17 @@ library(tokenizers)
 library(dplyr)
 library(tidytext)
 library(sentimentr)
-#library(gender)
 library(gmodels)
 library(C50)
 library("caret")
-
 ```
+
+```{r}
+# memory.size() ### Checking your memory size
+# memory.limit() ## Checking the set limit
+# memory.limit(size=500000)
+```
+
 
 ## Loading Data
 ```{r}
@@ -41,27 +46,29 @@ news_test$fake <- as.factor(news_test_result$label) #changed to factor in order 
 ```
 
 ## Data Preperation and Cleaning
+
 ### Train Data
-```{r}
+```{r cache = TRUE}
 # Cleaning article titles
 news_train$cleaned_title <- tolower(news_train$title)
 news_train$cleaned_title <- removePunctuation(news_train$cleaned_title)
 news_train$cleaned_title <- stripWhitespace(news_train$cleaned_title)
 
-news_train$title_character_length <- lapply(news_train$cleaned_title, nchar)#Creates varible of length of title
+news_train$title_character_length <- lapply(news_train$cleaned_title, nchar)#Creates variable of length of title
 news_train$cleaned_title <- tokenize_words(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
 news_train$title_word_length <- lapply(news_train$cleaned_title, length)
 ```
 
 
-```{r}
-#Cleaning article text
+```{r cache = TRUE}
+# Cleaning article text
 news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
 
-#news_train$text_sentiment <- sentiment(news_train$cleaned_text)$sentiment #Returns emotional sentiment of article with numeric score 
+# Returns emotional sentiment of article with numeric score
+# news_train$text_sentiment <- sentiment(get_sentences(paste(news_train$cleaned_text, sep='', collapse=NULL)))$sentiment   
 news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
 news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
@@ -69,11 +76,11 @@ news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 ```
 
 ```{r}
-names(news_train)[names(news_train)== "label"] <- "fake" #renaming dependent varible for readability purposes
+names(news_train)[names(news_train)== "label"] <- "fake" #renaming dependent variable for readability purposes
 ```
 
 ### Test Data
-```{r}
+```{r cache = TRUE}
 # Cleaning article titles
 news_test$cleaned_title <- tolower(news_test$title)
 news_test$cleaned_title <- removePunctuation(news_test$cleaned_title)
@@ -86,21 +93,22 @@ news_test$title_word_length <- lapply(news_test$cleaned_title, length)
 ```
 
 
-```{r}
-#Cleaning article text
+```{r cache = TRUE}
+# Cleaning article text
 news_test$cleaned_text <- tolower(news_test$text)
 news_test$cleaned_text <- removePunctuation(news_test$cleaned_text)
 news_test$cleaned_text <- stripWhitespace(news_test$cleaned_text)
 
-#news_test$text_sentiment <- sentiment(news_test$cleaned_text)$sentiment #Returns emotional sentiment of article with numeric score 
+# Returns emotional sentiment of article with numeric score
+# news_test$text_sentiment <- sentiment(get_sentences(paste(news_test$cleaned_text, sep='', collapse=NULL)))$sentiment 
 news_test$text_character_length <- lapply(news_test$cleaned_text, nchar)
 news_test$cleaned_text <- tokenize_words(news_test$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_test$cleaned_text <- lapply(news_test$cleaned_text, tokenize_word_stems)
 news_test$text_word_length <- lapply(news_test$cleaned_text, length)
 ```
 
-```{r}
-#Adjusting structure types for usability 
+```{r cache = TRUE}
+# Adjusting structure types for usability 
 news_train$title_character_length <- as.numeric(news_train$title_character_length)
 news_train$text_character_length <- as.numeric(news_train$text_character_length)
 news_train$title_word_length <- as.numeric(news_train$title_word_length)
@@ -119,27 +127,14 @@ The Dependent Variable we are hoping to predict is whether or not an article is 
 The independent variables we are using to predict fake news are: text_character_length (length of the article in characters), text_word_length (length of article in words), title_character_length (length of title in characters), title_word_length (length of title in words), sentiment (ADD EXPLINATION OF SENTIMENT)
 
 ```{r}
-#head(news_train_sample)
+head(news_train)
 ```
 
 ```{r}
-#news_train$cleaned_text[1]
-# paste(, collapse=' ')
-# sentiment('I am madly in love')$sentiment
-```
-
-
-```{r}
-View(news_train)
+# View(news_train)
 ```
 
 # Potential Things to Add
-
-## Must Haves
-
--Bigrams
--Trigrams
--Sentiment of Text
 
 ## Nice to Haves
 

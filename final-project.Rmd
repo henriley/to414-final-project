@@ -194,3 +194,51 @@ LogPredict <- as.factor(LogPredict)
 confusionMatrix(news_test$fake, LogPredict)
 ```
 
+
+## Decision Tree
+
+```{r}
+#building decision tree model
+library(C50)
+
+news_train$fake <- as.factor(news_train$fake)
+
+fakedecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length , data = news_train)
+
+plot(fakedecisionmodel)
+
+summary(fakedecisionmodel)
+```
+
+```{r}
+#checking prediction accuracy
+
+fakepred <- predict(fakedecisionmodel, news_test)
+
+library(gmodels)
+
+CrossTable(news_test$fake, fakepred)
+```
+
+```{r}
+#adding error costs for false negative (missing identifying something as fake news)
+
+error_cost <- matrix(c(0,0,4,0), nrow = 2)
+
+error_cost
+
+fakecostdecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length , data = news_train, costs = error_cost)
+
+```
+
+```{r}
+#checking new error cost model prediction accuracy
+
+fakecostpred <- predict(fakecostdecisionmodel, news_test)
+
+library(gmodels)
+
+CrossTable(news_test$fake, fakecostpred)
+
+```
+

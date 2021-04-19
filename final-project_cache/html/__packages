@@ -1,0 +1,13 @@
+base
+NLP
+tm
+stopwords
+tokenizers
+dplyr
+tidytext
+sentimentr
+gmodels
+C50
+lattice
+ggplot2
+caret

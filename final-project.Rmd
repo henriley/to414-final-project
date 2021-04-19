@@ -218,6 +218,10 @@ fakepred <- predict(fakedecisionmodel, news_test)
 library(gmodels)
 
 CrossTable(news_test$fake, fakepred)
+
+# Confusion Matrix
+confusionMatrix(as.factor(fakepred), news_test$fake, positive = '1')
+# 64.27% Accuracy with 0.2284 Kappa Statistics
 ```
 
 ```{r}
@@ -239,6 +243,11 @@ fakecostpred <- predict(fakecostdecisionmodel, news_test)
 library(gmodels)
 
 CrossTable(news_test$fake, fakecostpred)
+
+#Confusion Matrix
+confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = '1')
+# Accuracy increases to 74.75% with improved Kappa Statistics of 0.4625
+# Overall performance has been improved
 
 ```
 

@@ -21,13 +21,6 @@ library(C50)
 library("caret")
 ```
 
-```{r}
-# memory.size() ### Checking your memory size
-# memory.limit() ## Checking the set limit
-# memory.limit(size=500000)
-```
-
-
 ## Loading Data
 ```{r}
 # News Train
@@ -41,8 +34,20 @@ news_test_result <- read.csv('submit.csv')
 
 head(news_train)
 ```
+
 ```{r}
-news_test$fake <- as.factor(news_test_result$label) #changed to factor in order to be used in confussion Matrix
+sentiment_train <- read.csv('train_sentiment1.csv')
+head(sentiment_train)
+```
+
+```{r}
+sentiment_test <- read.csv('test_sentiment1.csv')
+head(sentiment_test)
+```
+
+
+```{r}
+news_test$fake <- as.factor(news_test_result$label) #changed to factor in order to be used in confusion Matrix
 ```
 
 ## Data Preperation and Cleaning
@@ -66,13 +71,15 @@ news_train$title_word_length <- lapply(news_train$cleaned_title, length)
 news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
-
-# Returns emotional sentiment of article with numeric score
-# news_train$text_sentiment <- sentiment(get_sentences(paste(news_train$cleaned_text, sep='', collapse=NULL)))$sentiment   
 news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
 news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
 news_train$text_word_length <- lapply(news_train$cleaned_text, length)
+
+# write.csv(sentiment(get_sentences(paste(news_train$cleaned_text, sep='', collapse=NULL)))$sentiment, 'C:\\Users\\Riley\\Documents\\Homework\\Ross\\TO_414\\to414-final-project\\train_sentiment1.csv')
+
+# Returns emotional sentiment of article with numeric score
+news_train$text_sentiment <- sentiment_train$sentiment_score
 ```
 
 ```{r}
@@ -86,7 +93,7 @@ news_test$cleaned_title <- tolower(news_test$title)
 news_test$cleaned_title <- removePunctuation(news_test$cleaned_title)
 news_test$cleaned_title <- stripWhitespace(news_test$cleaned_title)
 
-news_test$title_character_length <- lapply(news_test$cleaned_title, nchar)#Creates varible of length of title
+news_test$title_character_length <- lapply(news_test$cleaned_title, nchar)#Creates variable of length of title
 news_test$cleaned_title <- tokenize_words(news_test$cleaned_title, stopwords = stopwords::stopwords("en"))
 news_test$cleaned_title <- lapply(news_test$cleaned_title, tokenize_word_stems)
 news_test$title_word_length <- lapply(news_test$cleaned_title, length)
@@ -98,13 +105,15 @@ news_test$title_word_length <- lapply(news_test$cleaned_title, length)
 news_test$cleaned_text <- tolower(news_test$text)
 news_test$cleaned_text <- removePunctuation(news_test$cleaned_text)
 news_test$cleaned_text <- stripWhitespace(news_test$cleaned_text)
-
-# Returns emotional sentiment of article with numeric score
-# news_test$text_sentiment <- sentiment(get_sentences(paste(news_test$cleaned_text, sep='', collapse=NULL)))$sentiment 
 news_test$text_character_length <- lapply(news_test$cleaned_text, nchar)
 news_test$cleaned_text <- tokenize_words(news_test$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_test$cleaned_text <- lapply(news_test$cleaned_text, tokenize_word_stems)
 news_test$text_word_length <- lapply(news_test$cleaned_text, length)
+
+# write.csv(sentiment(get_sentences(paste(news_test$cleaned_text, sep='', collapse=NULL)))$sentiment, 'C:\\Users\\Riley\\Documents\\Homework\\Ross\\TO_414\\to414-final-project\\test_sentiment1.csv')
+
+# Returns emotional sentiment of article with numeric score
+news_test$text_sentiment <- sentiment_test$sentiment_score
 ```
 
 ```{r cache = TRUE}
@@ -113,11 +122,13 @@ news_train$title_character_length <- as.numeric(news_train$title_character_lengt
 news_train$text_character_length <- as.numeric(news_train$text_character_length)
 news_train$title_word_length <- as.numeric(news_train$title_word_length)
 news_train$text_word_length <- as.numeric(news_train$text_word_length)
+news_train$text_sentiment <- as.numeric(news_train$text_sentiment)
 
 news_test$title_character_length <- as.numeric(news_test$title_character_length)
 news_test$text_character_length <- as.numeric(news_test$text_character_length)
 news_test$title_word_length <- as.numeric(news_test$title_word_length)
 news_test$text_word_length <- as.numeric(news_test$text_word_length)
+news_test$text_sentiment <- as.numeric(news_test$text_sentiment)
 
 ```
 
@@ -131,14 +142,8 @@ head(news_train)
 ```
 
 ```{r}
-# View(news_train)
+head(news_test)
 ```
-
-# Potential Things to Add
-
-## Nice to Haves
-
--Parts of Speech Count
 
 ## Linear Regression
 

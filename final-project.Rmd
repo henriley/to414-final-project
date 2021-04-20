@@ -167,7 +167,7 @@ WILL ADD ANALYSIS AFTER ALL FACTORS AVAIBLE (i.e. sentiment)
 ### Model Testing
 ```{r}
 LinearPredict <- predict(FakeLinear, news_test)
-LinearPredict <- ifelse(LinearPredict > 0.43, 1,0)#Tested multiple cutoffs, this cutoff produces highest Kappa
+LinearPredict <- ifelse(LinearPredict > 0.43, 1,0) #Tested multiple cutoffs, this cutoff produces highest Kappa
 LinearPredict <- as.factor(LinearPredict)
 
 confusionMatrix(news_test$fake, LinearPredict)
@@ -254,5 +254,74 @@ confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = '
 # Accuracy increases to 74.75% with improved Kappa Statistics of 0.4625
 # Overall performance has been improved
 
+```
+
+## KNN Model
+
+```{r}
+library(class)
+library(caret)
+
+sent_train_knn <- sentiment_train
+sent_test_knn <- sentiment_test
+sent_train_labels <- news_train$fake
+sent_test_labels <- news_test$fake
+
+sqrt(nrow(sentiment_train)) 
+
+# k = 143 -> accuracy of 69.31 and kappa of 0.3888
+# k = 145 -> accuracy of 69.38 and kappa of 0.39
+
+sent_test_pred <- knn(train = sent_train_knn, test = sent_test_knn,
+                      cl = sent_train_labels, k=145)
+
+#Evaluate model results
+CrossTable(x = sent_test_labels, y = sent_test_pred, prop.chisq=FALSE)
+confusionMatrix(sent_test_labels, sent_test_pred)
+```
+
+## ANN Model
+
+```{r}
+sent_train_ann <- sentiment_train
+sent_train_ann$fake <- news_train$fake
+sent_train_ann$fake <- as.numeric(sent_train_ann$fake)
+sent_train_ann$title_word <- news_train$title_word_length
+sent_train_ann$text_word <- news_train$text_word_length
+sent_train_ann$title_char <- news_train$title_character_length
+sent_train_ann$text_char <- news_train$text_character_length
+
+sent_test_ann <- sentiment_test
+sent_test_ann$fake <- news_test$fake
+sent_test_ann$fake <- as.numeric(sent_test_ann$fake)
+sent_test_ann$title_word <- news_test$title_word_length
+sent_test_ann$text_word <- news_test$text_word_length
+sent_test_ann$title_char <- news_test$title_character_length
+sent_test_ann$text_char <- news_test$text_character_length
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+#Applying normalization function to entire dataframe
+sent_train_ann <- as.data.frame(lapply(sent_train_ann, normalize))
+sent_test_ann <- as.data.frame(lapply(sent_test_ann, normalize))
+
+
+library(neuralnet)
+ann_model <- neuralnet(formula = fake ~ ., data = sent_train_ann)
+
+# visualize the network topology
+plot(ann_model)
+
+# obtain model results
+results <- compute(ann_model, sent_test_ann)
+# obtain predicted strength values
+ann_results <- results$net.result
+sent_ann_predict <- ifelse(ann_results>0.5,1,0) 
+sent_ann_predict <- as.factor(sent_ann_predict)
+
+CrossTable(x = sent_test_labels, y = sent_ann_predict, prop.chisq=FALSE)
+confusionMatrix(sent_test_labels, sent_ann_predict)
 ```
 

@@ -19,6 +19,7 @@ library(sentimentr)
 library(gmodels)
 library(C50)
 library("caret")
+library('VIF')
 ```
 
 ## Loading Data
@@ -133,10 +134,25 @@ news_test$text_sentiment <- as.numeric(news_test$text_sentiment)
 
 ```
 
+
 ## Summary of Varibles
+```{r}
+summary(news_train$fake)
+summary(news_train$text_character_length)
+summary(news_train$text_word_length)
+summary(news_train$title_character_length)
+summary(news_train$title_word_length)
+summary(news_train$text_sentiment)
+
+```
+
 The Dependent Variable we are hoping to predict is whether or not an article is "fake" news, this is a binomial variable.
 
-The independent variables we are using to predict fake news are: text_character_length (length of the article in characters), text_word_length (length of article in words), title_character_length (length of title in characters), title_word_length (length of title in words), sentiment (ADD EXPLINATION OF SENTIMENT)
+The independent variables we are using to predict fake news are: text_character_length (length of the article in characters), text_word_length (length of article in words), title_character_length (length of title in characters), title_word_length (length of title in words), sentiment (positive /negative scale of sentiment of words)
+
+The sentiment scores scale from -1 to 1 with -1 being extremely negative sentiment vise versa for positive. A score around 0 would be neutral. Note that with a mean of 0.98 and a median of 0.38, the distribution of sentiment is slightly positive skewing. 
+
+
 
 ```{r}
 head(news_train)
@@ -145,51 +161,23 @@ head(news_train)
 ```{r}
 head(news_test)
 ```
-
-## Linear Regression
-
-### Model Design
-```{r}
-FakeLinear <- lm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length, data = news_train )
-summary(FakeLinear)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length
-```
-```{r}
-FakeLinear <- lm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + (text_character_length*text_word_length) + (title_character_length*title_word_length), data = news_train )
-summary(FakeLinear)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length, title_character_length*title_word_length
-```
-```{r}
-FakeLinear <- lm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + (title_character_length*title_word_length) + I(text_character_length ^2) + I(title_character_length ^2) +I(text_word_length ^2) +I(title_word_length ^2), data = news_train)
-summary(FakeLinear)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length, title_character_length*title_word_length, text_character_length^2, text_word_length^2, title_character_length^2, title_word_length^2
-```
-WILL ADD ANALYSIS AFTER ALL FACTORS AVAIBLE (i.e. sentiment)
-### Model Testing
-```{r}
-LinearPredict <- predict(FakeLinear, news_test)
-LinearPredict <- ifelse(LinearPredict > 0.43, 1,0) #Tested multiple cutoffs, this cutoff produces highest Kappa
-LinearPredict <- as.factor(LinearPredict)
-
-confusionMatrix(news_test$fake, LinearPredict)
-```
-
 ## Logistic Regression
 ### Model Design
 ```{r}
-FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length, data = news_train )
+FakeLog <- glm(fake~ text_character_length + text_word_length + title_character_length + title_word_length + text_sentiment, data = news_train )
 summary(FakeLog)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length
+#Significant factors(at alpha <= .05): text_character_length, title_character_length, title_word_length, text_sentiment 
+```
+
+```{r}
+FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length+ text_sentiment +(text_character_length*text_word_length) + (title_character_length*title_word_length) +(text_sentiment * text_character_length)+(text_sentiment * title_character_length)+ +(text_sentiment * text_word_length)+(text_sentiment * title_word_length), data = news_train )
+summary(FakeLog)
+#Significant factors(at alpha <= .05): text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment, title_character_length*title_word_length, text_character_length*text_sentiment + title_character_length*text_sentiment + text_word_length*text_sentiment
 ```
 ```{r}
-FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + (text_character_length*text_word_length) + (title_character_length*title_word_length), data = news_train )
+FakeLog <- glm(fake  ~ text_character_length+ text_word_length+ title_character_length+ title_word_length+text_sentiment+ title_character_length*title_word_length+ text_character_length*text_sentiment + title_character_length*text_sentiment + text_word_length*text_sentiment + I(text_character_length ^2) + I(title_character_length ^2) +I(text_word_length ^2) +I(title_word_length ^2) +I(text_sentiment ^2), data = news_train)
 summary(FakeLog)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length, title_character_length*title_word_length
-```
-```{r}
-FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + (title_character_length*title_word_length) + I(text_character_length ^2) + I(title_character_length ^2) +I(text_word_length ^2) +I(title_word_length ^2), data = news_train)
-summary(FakeLog)
-#Significant factors: text_character_length, text_word_length, title_character_length, title_word_length, title_character_length*title_word_length, text_character_length^2, text_word_length^2, title_character_length^2, title_word_length^2
+#Significant factors(at alpha <= .05): text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment, title_character_length*title_word_length, text_character_length*text_sentiment , title_character_length*text_sentiment , text_word_length*text_sentiment , I(text_character_length ^2) , I(title_character_length ^2) ,I(text_word_length ^2) ,I(title_word_length ^2) ,I(text_sentiment ^2)
 ```
 ### Model Testing
 ```{r}
@@ -200,6 +188,12 @@ LogPredict <- as.factor(LogPredict)
 confusionMatrix(news_test$fake, LogPredict)
 ```
 
+### Analysis of Model
+A few interesting takeaways come from our first model, logistic regression. First, all of the independent variables we made (text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment) are significant in predicting if the news article is FAKE or not. Additionally, almost every interaction and the square values of each variable (excludes text_character_length:text_word_length). 
+
+Our log model appears to be a modertly good predictor of if the article is fake news or not, suggested by the Kappa score of 0.4295. Hopefully the following models below will produce results as good or better than the log regression.
+
+Note we did not create a linear regression due to our dependent varibles being binomial. 
 
 ## Decision Tree
 

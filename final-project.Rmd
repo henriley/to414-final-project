@@ -54,13 +54,14 @@ news_test$fake <- as.factor(news_test_result$label) #changed to factor in order 
 
 ### Train Data
 ```{r cache = TRUE}
+library(tokenizers)
+library(stringi)
 # Cleaning article titles
 news_train$cleaned_title <- tolower(news_train$title)
 news_train$cleaned_title <- removePunctuation(news_train$cleaned_title)
 news_train$cleaned_title <- stripWhitespace(news_train$cleaned_title)
-
 news_train$title_character_length <- lapply(news_train$cleaned_title, nchar)#Creates variable of length of title
-news_train$cleaned_title <- tokenize_words(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
+news_train$cleaned_title <- tokenize_word_stems(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
 news_train$title_word_length <- lapply(news_train$cleaned_title, length)
 ```
@@ -72,7 +73,7 @@ news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
 news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
-news_train$cleaned_text <- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
+news_train$cleaned_text <- tokenize_word_stems(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
 news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
 news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 
@@ -282,7 +283,7 @@ confusionMatrix(sent_test_labels, sent_test_pred)
 
 ## ANN Model
 
-```{r}
+```{r cache = TRUE}
 sent_train_ann <- sentiment_train
 sent_train_ann$fake <- news_train$fake
 sent_train_ann$fake <- as.numeric(sent_train_ann$fake)
@@ -323,5 +324,40 @@ sent_ann_predict <- as.factor(sent_ann_predict)
 
 CrossTable(x = sent_test_labels, y = sent_ann_predict, prop.chisq=FALSE)
 confusionMatrix(sent_test_labels, sent_ann_predict)
+```
+
+```{r}
+# Get a list of all the fake news
+fake_news <- news_train[news_train$fake == 1, ]
+
+# Use a function to get a list of everything (can't just c(news_train$cleaned_title)
+#test <- do.call(c, news_train$cleaned_title)
+test <- list(news_train$cleaned_title)
+test <- unlist(test)
+
+# Get rid of all one characters words
+test <- test[lapply(X = test, FUN = nchar) != 1]
+
+# Get rid of NULL values
+test <- test[!sapply(test,is.null)]
+
+# Dataframe of the words
+words <- data.frame(matrix(unlist(test)))
+colnames(words) <- "word"
+
+# Sorted by frequency of words, top 20
+freq_words <- count(words, word)
+head(freq_words)
+sorted_words <- freq_words[order(-freq_words$n),]
+top20 <- head(sorted_words, 20)
+head(top20)
+#topwords <- list(top20$"matrix.unlist.test..")
+
+
+# Check if the the words are in the title
+news_train$has_word <- ifelse(top20$word %in% news_train$cleaned_title, 1, 0)
+
+# Compare data to make sure whether it's working
+# confusionMatrix(as.factor(news_train$has_word), as.factor(news_train$fake))
 ```
 

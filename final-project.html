@@ -289,13 +289,14 @@ head(sentiment_test)</code></pre>
 <h2>Data Preperation and Cleaning</h2>
 <div id="train-data" class="section level3">
 <h3>Train Data</h3>
-<pre class="r"><code># Cleaning article titles
+<pre class="r"><code>library(tokenizers)
+library(stringi)
+# Cleaning article titles
 news_train$cleaned_title &lt;- tolower(news_train$title)
 news_train$cleaned_title &lt;- removePunctuation(news_train$cleaned_title)
 news_train$cleaned_title &lt;- stripWhitespace(news_train$cleaned_title)
-
 news_train$title_character_length &lt;- lapply(news_train$cleaned_title, nchar)#Creates variable of length of title
-news_train$cleaned_title &lt;- tokenize_words(news_train$cleaned_title, stopwords = stopwords::stopwords(&quot;en&quot;))
+news_train$cleaned_title &lt;- tokenize_word_stems(news_train$cleaned_title, stopwords = stopwords::stopwords(&quot;en&quot;))
 news_train$cleaned_title &lt;- lapply(news_train$cleaned_title, tokenize_word_stems)
 news_train$title_word_length &lt;- lapply(news_train$cleaned_title, length)</code></pre>
 <pre class="r"><code># Cleaning article text
@@ -303,7 +304,7 @@ news_train$cleaned_text &lt;- tolower(news_train$text)
 news_train$cleaned_text &lt;- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text &lt;- stripWhitespace(news_train$cleaned_text)
 news_train$text_character_length &lt;- lapply(news_train$cleaned_text, nchar)
-news_train$cleaned_text &lt;- tokenize_words(news_train$cleaned_text, stopwords = stopwords::stopwords(&quot;en&quot;))
+news_train$cleaned_text &lt;- tokenize_word_stems(news_train$cleaned_text, stopwords = stopwords::stopwords(&quot;en&quot;))
 news_train$cleaned_text &lt;- lapply(news_train$cleaned_text, tokenize_word_stems)
 news_train$text_word_length &lt;- lapply(news_train$cleaned_text, length)
 
@@ -790,7 +791,7 @@ plot(fakedecisionmodel)</code></pre>
 ##  + title_character_length + title_word_length, data = news_train)
 ## 
 ## 
-## C5.0 [Release 2.07 GPL Edition]      Tue Apr 20 18:41:07 2021
+## C5.0 [Release 2.07 GPL Edition]      Wed Apr 21 13:47:22 2021
 ## -------------------------------
 ## 
 ## Class specified by attribute `outcome&#39;
@@ -1104,18 +1105,18 @@ CrossTable(x = sent_test_labels, y = sent_test_pred, prop.chisq=FALSE)</code></p
 ##                  | sent_test_pred 
 ## sent_test_labels |         0 |         1 | Row Total | 
 ## -----------------|-----------|-----------|-----------|
-##                0 |      1728 |       611 |      2339 | 
+##                0 |      1729 |       610 |      2339 | 
 ##                  |     0.739 |     0.261 |     0.450 | 
-##                  |     0.638 |     0.245 |           | 
-##                  |     0.332 |     0.117 |           | 
+##                  |     0.639 |     0.245 |           | 
+##                  |     0.333 |     0.117 |           | 
 ## -----------------|-----------|-----------|-----------|
-##                1 |       980 |      1881 |      2861 | 
-##                  |     0.343 |     0.657 |     0.550 | 
-##                  |     0.362 |     0.755 |           | 
+##                1 |       977 |      1884 |      2861 | 
+##                  |     0.341 |     0.659 |     0.550 | 
+##                  |     0.361 |     0.755 |           | 
 ##                  |     0.188 |     0.362 |           | 
 ## -----------------|-----------|-----------|-----------|
-##     Column Total |      2708 |      2492 |      5200 | 
-##                  |     0.521 |     0.479 |           | 
+##     Column Total |      2706 |      2494 |      5200 | 
+##                  |     0.520 |     0.480 |           | 
 ## -----------------|-----------|-----------|-----------|
 ## 
 ## </code></pre>
@@ -1124,26 +1125,26 @@ CrossTable(x = sent_test_labels, y = sent_test_pred, prop.chisq=FALSE)</code></p
 ## 
 ##           Reference
 ## Prediction    0    1
-##          0 1728  611
-##          1  980 1881
+##          0 1729  610
+##          1  977 1884
 ##                                           
-##                Accuracy : 0.694           
-##                  95% CI : (0.6813, 0.7065)
-##     No Information Rate : 0.5208          
+##                Accuracy : 0.6948          
+##                  95% CI : (0.6821, 0.7073)
+##     No Information Rate : 0.5204          
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
 ##                                           
-##                   Kappa : 0.3906          
+##                   Kappa : 0.3921          
 ##                                           
 ##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
 ##                                           
-##             Sensitivity : 0.6381          
-##             Specificity : 0.7548          
-##          Pos Pred Value : 0.7388          
-##          Neg Pred Value : 0.6575          
-##              Prevalence : 0.5208          
-##          Detection Rate : 0.3323          
+##             Sensitivity : 0.6390          
+##             Specificity : 0.7554          
+##          Pos Pred Value : 0.7392          
+##          Neg Pred Value : 0.6585          
+##              Prevalence : 0.5204          
+##          Detection Rate : 0.3325          
 ##    Detection Prevalence : 0.4498          
-##       Balanced Accuracy : 0.6965          
+##       Balanced Accuracy : 0.6972          
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
@@ -1254,6 +1255,52 @@ CrossTable(x = sent_test_labels, y = sent_ann_predict, prop.chisq=FALSE)</code><
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
+<pre class="r"><code># Get a list of all the fake news
+fake_news &lt;- news_train[news_train$fake == 1, ]
+
+# Use a function to get a list of everything (can&#39;t just c(news_train$cleaned_title)
+#test &lt;- do.call(c, news_train$cleaned_title)
+test &lt;- list(news_train$cleaned_title)
+test &lt;- unlist(test)
+
+# Get rid of all one characters words
+test &lt;- test[lapply(X = test, FUN = nchar) != 1]
+
+# Get rid of NULL values
+test &lt;- test[!sapply(test,is.null)]
+
+# Dataframe of the words
+words &lt;- data.frame(matrix(unlist(test)))
+colnames(words) &lt;- &quot;word&quot;
+
+# Sorted by frequency of words, top 20
+freq_words &lt;- count(words, word)
+head(freq_words)</code></pre>
+<pre><code>##      word n
+## 1     004 1
+## 2      01 8
+## 3      02 1
+## 4   029oz 1
+## 5 046year 1
+## 6      05 2</code></pre>
+<pre class="r"><code>sorted_words &lt;- freq_words[order(-freq_words$n),]
+top20 &lt;- head(sorted_words, 20)
+head(top20)</code></pre>
+<pre><code>##            word    n
+## 10838       new 7117
+## 15746      time 6521
+## 17480      york 6364
+## 16042     trump 3054
+## 2588  breitbart 2398
+## 7528    hillari 1132</code></pre>
+<pre class="r"><code>#topwords &lt;- list(top20$&quot;matrix.unlist.test..&quot;)
+
+
+# Check if the the words are in the title
+news_train$has_word &lt;- ifelse(top20$word %in% news_train$cleaned_title, 1, 0)
+
+# Compare data to make sure whether it&#39;s working
+# confusionMatrix(as.factor(news_train$has_word), as.factor(news_train$fake))</code></pre>
 </div>
 
 

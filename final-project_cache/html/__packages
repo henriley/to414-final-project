@@ -11,3 +11,6 @@ C50
 lattice
 ggplot2
 caret
+stringi
+class
+neuralnet

@@ -150,8 +150,7 @@ The Dependent Variable we are hoping to predict is whether or not an article is 
 
 The independent variables we are using to predict fake news are: text_character_length (length of the article in characters), text_word_length (length of article in words), title_character_length (length of title in characters), title_word_length (length of title in words), sentiment (positive /negative scale of sentiment of words)
 
-The sentiment scores scale from -1 to 1 with -1 being extremely negative sentiment vise versa for positive. A score around 0 would be neutral. Note that with a mean of 0.98 and a median of 0.38, the distribution of sentiment is slightly positive skewing. 
-
+The sentiment scores scale from -1 to 1 with -1 being extremely negative sentiment vise versa for positive. A score around 0 would be neutral. Note that with a mean of 0.98 and a median of 0.38, the distribution of sentiment is slightly positive skewing.
 
 
 ```{r}
@@ -191,9 +190,9 @@ confusionMatrix(news_test$fake, LogPredict)
 ### Analysis of Model
 A few interesting takeaways come from our first model, logistic regression. First, all of the independent variables we made (text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment) are significant in predicting if the news article is FAKE or not. Additionally, almost every interaction and the square values of each variable (excludes text_character_length:text_word_length). 
 
-Our log model appears to be a modertly good predictor of if the article is fake news or not, suggested by the Kappa score of 0.4295. Hopefully the following models below will produce results as good or better than the log regression.
+Our log model appears to be a moderately good predictor of if the article is fake news or not, suggested by the Kappa score of 0.4295. Hopefully the following models below will produce results as good or better than the log regression.
 
-Note we did not create a linear regression due to our dependent varibles being binomial. 
+Note we did not create a linear regression due to our dependent variables being binomial. 
 
 ## Decision Tree
 
@@ -203,7 +202,7 @@ library(C50)
 
 news_train$fake <- as.factor(news_train$fake)
 
-fakedecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length , data = news_train)
+fakedecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + text_sentiment , data = news_train)
 
 plot(fakedecisionmodel)
 
@@ -221,17 +220,21 @@ CrossTable(news_test$fake, fakepred)
 
 # Confusion Matrix
 confusionMatrix(as.factor(fakepred), news_test$fake, positive = '1')
-# 64.27% Accuracy with 0.2284 Kappa Statistics
+# 70.81% Accuracy with 0.4111 Kappa Statistics
 ```
 
 ```{r}
 #adding error costs for false negative (missing identifying something as fake news)
 
-error_cost <- matrix(c(0,0,4,0), nrow = 2)
+error_cost <- matrix(c(0,0,3,0), nrow = 2)
 
 error_cost
 
-fakecostdecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length , data = news_train, costs = error_cost)
+fakecostdecisionmodel <- C5.0(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + text_sentiment, data = news_train, costs = error_cost)
+
+plot(fakecostdecisionmodel)
+
+summary(fakecostdecisionmodel)
 
 ```
 
@@ -246,10 +249,24 @@ CrossTable(news_test$fake, fakecostpred)
 
 #Confusion Matrix
 confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = '1')
-# Accuracy increases to 74.75% with improved Kappa Statistics of 0.4625
+# Accuracy increases to 76% with improved Kappa Statistics of 0.4931
 # Overall performance has been improved
 
 ```
+
+### Analysis of Decision Tree Model
+
+The first model proved to have a 70.81% accuracy with a 0.4111 Kappa Statistic. We improved the model by adding error cost. We assigned error to the model missing identifying news that is fake (false negative). After this improvement, the false negatives dropped from 778 to 67 with overall model accuracy improving to 76% with a 0.4931 Kappa Statistic.
+
+The attribute usage is as followed:
+
+	100.00%	title_word_length
+	 68.10%	text_character_length
+	 68.10%	title_character_length
+	 30.84%	text_sentiment
+	 21.50%	text_word_length
+	 
+This is consistent with the logistic regression model which saw title word length with the highest magnitude impact and text word length as the lowest magnitude impact on the predicted outcome.
 
 ## KNN Model
 

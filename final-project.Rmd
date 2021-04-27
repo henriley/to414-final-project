@@ -1,7 +1,7 @@
 ---
-title: "Final Project"
-author: "Riley Maher"
-date: "3/28/2021"
+title: "TO414 Final Project"
+author: "Grace Chang, Seungwan Kim, Riley C Maher, Sage O'Toole, Jenna Kay Probst"
+date: "4/27/2021"
 output: html_document
 ---
 
@@ -17,8 +17,11 @@ library(dplyr)
 library(tidytext)
 library(sentimentr)
 library(gmodels)
+library(stringi)
 library(C50)
-library("caret")
+library(class)
+library(caret)
+library(neuralnet)
 library('VIF')
 ```
 
@@ -38,12 +41,7 @@ head(news_train)
 
 ```{r}
 sentiment_train <- read.csv('train_sentiment1.csv')
-head(sentiment_train)
-```
-
-```{r}
 sentiment_test <- read.csv('test_sentiment1.csv')
-head(sentiment_test)
 ```
 
 
@@ -54,28 +52,34 @@ news_test$fake <- as.factor(news_test_result$label) #changed to factor in order 
 ## Data Preperation and Cleaning
 
 ### Train Data
-```{r cache = TRUE}
+```{r }
 library(tokenizers)
 library(stringi)
 # Cleaning article titles
 news_train$cleaned_title <- tolower(news_train$title)
+news_train$cleaned_title <- stri_trans_general(news_train$title, "latin-ascii") # Remove/replace non-ascii characters
 news_train$cleaned_title <- removePunctuation(news_train$cleaned_title)
 news_train$cleaned_title <- stripWhitespace(news_train$cleaned_title)
-news_train$title_character_length <- lapply(news_train$cleaned_title, nchar)#Creates variable of length of title
+# news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
+
+news_train$title_character_length <- lapply(news_train$cleaned_title, nchar) # Creates variable of length of title
 news_train$cleaned_title <- tokenize_word_stems(news_train$cleaned_title, stopwords = stopwords::stopwords("en"))
-news_train$cleaned_title <- lapply(news_train$cleaned_title, tokenize_word_stems)
+
 news_train$title_word_length <- lapply(news_train$cleaned_title, length)
+
 ```
 
 
-```{r cache = TRUE}
+```{r }
 # Cleaning article text
 news_train$cleaned_text <- tolower(news_train$text)
 news_train$cleaned_text <- removePunctuation(news_train$cleaned_text)
 news_train$cleaned_text <- stripWhitespace(news_train$cleaned_text)
+
 news_train$text_character_length <- lapply(news_train$cleaned_text, nchar)
+
 news_train$cleaned_text <- tokenize_word_stems(news_train$cleaned_text, stopwords = stopwords::stopwords("en"))
-news_train$cleaned_text <- lapply(news_train$cleaned_text, tokenize_word_stems)
+
 news_train$text_word_length <- lapply(news_train$cleaned_text, length)
 
 # write.csv(sentiment(get_sentences(paste(news_train$cleaned_text, sep='', collapse=NULL)))$sentiment, 'C:\\Users\\Riley\\Documents\\Homework\\Ross\\TO_414\\to414-final-project\\train_sentiment1.csv')
@@ -94,22 +98,27 @@ names(news_train)[names(news_train)== "label"] <- "fake" #renaming dependent var
 news_test$cleaned_title <- tolower(news_test$title)
 news_test$cleaned_title <- removePunctuation(news_test$cleaned_title)
 news_test$cleaned_title <- stripWhitespace(news_test$cleaned_title)
+#news_test$cleaned_title <- lapply(news_test$cleaned_title, tokenize_word_stems)
+
 
 news_test$title_character_length <- lapply(news_test$cleaned_title, nchar)#Creates variable of length of title
+
 news_test$cleaned_title <- tokenize_words(news_test$cleaned_title, stopwords = stopwords::stopwords("en"))
-news_test$cleaned_title <- lapply(news_test$cleaned_title, tokenize_word_stems)
+
 news_test$title_word_length <- lapply(news_test$cleaned_title, length)
 ```
 
 
-```{r cache = TRUE}
+```{r}
 # Cleaning article text
 news_test$cleaned_text <- tolower(news_test$text)
 news_test$cleaned_text <- removePunctuation(news_test$cleaned_text)
 news_test$cleaned_text <- stripWhitespace(news_test$cleaned_text)
+
 news_test$text_character_length <- lapply(news_test$cleaned_text, nchar)
+
 news_test$cleaned_text <- tokenize_words(news_test$cleaned_text, stopwords = stopwords::stopwords("en"))
-news_test$cleaned_text <- lapply(news_test$cleaned_text, tokenize_word_stems)
+
 news_test$text_word_length <- lapply(news_test$cleaned_text, length)
 
 # write.csv(sentiment(get_sentences(paste(news_test$cleaned_text, sep='', collapse=NULL)))$sentiment, 'C:\\Users\\Riley\\Documents\\Homework\\Ross\\TO_414\\to414-final-project\\test_sentiment1.csv')
@@ -118,7 +127,7 @@ news_test$text_word_length <- lapply(news_test$cleaned_text, length)
 news_test$text_sentiment <- sentiment_test$sentiment_score
 ```
 
-```{r cache = TRUE}
+```{r}
 # Adjusting structure types for usability 
 news_train$title_character_length <- as.numeric(news_train$title_character_length)
 news_train$text_character_length <- as.numeric(news_train$text_character_length)
@@ -143,7 +152,6 @@ summary(news_train$text_word_length)
 summary(news_train$title_character_length)
 summary(news_train$title_word_length)
 summary(news_train$text_sentiment)
-
 ```
 
 The Dependent Variable we are hoping to predict is whether or not an article is "fake" news, this is a binomial variable.
@@ -152,26 +160,18 @@ The independent variables we are using to predict fake news are: text_character_
 
 The sentiment scores scale from -1 to 1 with -1 being extremely negative sentiment vise versa for positive. A score around 0 would be neutral. Note that with a mean of 0.98 and a median of 0.38, the distribution of sentiment is slightly positive skewing.
 
-
-```{r}
-head(news_train)
-```
-
-```{r}
-head(news_test)
-```
 ## Logistic Regression
 ### Model Design
 ```{r}
-FakeLog <- glm(fake~ text_character_length + text_word_length + title_character_length + title_word_length + text_sentiment, data = news_train )
+FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length + text_sentiment, data = news_train )
 summary(FakeLog)
-#Significant factors(at alpha <= .05): text_character_length, title_character_length, title_word_length, text_sentiment 
+#Significant factors(at alpha <= .05): text_character_length, text_word_length, title_character_length, title_word_length, text_sentiment 
 ```
 
 ```{r}
 FakeLog <- glm(fake ~ text_character_length + text_word_length + title_character_length + title_word_length+ text_sentiment +(text_character_length*text_word_length) + (title_character_length*title_word_length) +(text_sentiment * text_character_length)+(text_sentiment * title_character_length)+ +(text_sentiment * text_word_length)+(text_sentiment * title_word_length), data = news_train )
 summary(FakeLog)
-#Significant factors(at alpha <= .05): text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment, title_character_length*title_word_length, text_character_length*text_sentiment + title_character_length*text_sentiment + text_word_length*text_sentiment
+#Significant factors(at alpha <= .05): text_character_length, text_word_length, title_word_length,text_sentiment, text_character_length*text_word_length, title_character_length*title_word_length, text_character_length*text_sentiment + title_character_length*text_sentiment + text_word_length*text_sentiment
 ```
 ```{r}
 FakeLog <- glm(fake  ~ text_character_length+ text_word_length+ title_character_length+ title_word_length+text_sentiment+ title_character_length*title_word_length+ text_character_length*text_sentiment + title_character_length*text_sentiment + text_word_length*text_sentiment + I(text_character_length ^2) + I(title_character_length ^2) +I(text_word_length ^2) +I(title_word_length ^2) +I(text_sentiment ^2), data = news_train)
@@ -220,7 +220,7 @@ CrossTable(news_test$fake, fakepred)
 
 # Confusion Matrix
 confusionMatrix(as.factor(fakepred), news_test$fake, positive = '1')
-# 70.81% Accuracy with 0.4111 Kappa Statistics
+# 72.13% Accuracy with 0.4372 Kappa Statistics
 ```
 
 ```{r}
@@ -243,132 +243,151 @@ summary(fakecostdecisionmodel)
 
 fakecostpred <- predict(fakecostdecisionmodel, news_test)
 
-library(gmodels)
-
 CrossTable(news_test$fake, fakecostpred)
 
 #Confusion Matrix
 confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = '1')
-# Accuracy increases to 76% with improved Kappa Statistics of 0.4931
+# Accuracy increases to 78.13% with improved Kappa Statistics of 0.538
 # Overall performance has been improved
 
 ```
 
 ### Analysis of Decision Tree Model
 
-The first model proved to have a 70.81% accuracy with a 0.4111 Kappa Statistic. We improved the model by adding error cost. We assigned error to the model missing identifying news that is fake (false negative). After this improvement, the false negatives dropped from 778 to 67 with overall model accuracy improving to 76% with a 0.4931 Kappa Statistic.
+The first model proved to have a 72.13% accuracy with a 0.4372 Kappa Statistic. We improved the model by adding error cost. We assigned error to the model missing identifying news that is fake (false negative). After this improvement, the false negatives dropped from 729 to 8 with overall model accuracy improving to 78.13% with a 0.538 Kappa Statistic.
 
 The attribute usage is as followed:
 
-	100.00%	title_word_length
-	 68.10%	text_character_length
-	 68.10%	title_character_length
-	 30.84%	text_sentiment
-	 21.50%	text_word_length
+  100.00%	title_word_length
+	 67.93%	text_character_length
+	 32.63%	title_character_length
+	 27.34%	text_sentiment
+	 19.23%	text_word_length
+
 	 
 This is consistent with the logistic regression model which saw title word length with the highest magnitude impact and text word length as the lowest magnitude impact on the predicted outcome.
 
-## KNN Model
+## Top 20 Words in Fake News
+
+### In Title
 
 ```{r}
-library(class)
-library(caret)
+# Get all the fake news rows
+fake_news <- news_train[news_train$fake == 1, ] # Fake
 
-sent_train_knn <- sentiment_train
-sent_test_knn <- sentiment_test
-sent_train_labels <- news_train$fake
-sent_test_labels <- news_test$fake
+# Use a function to get a list of everything (can't just c(news_train$cleaned_title)
+title <- do.call(c, fake_news$cleaned_title)
 
-sqrt(nrow(sentiment_train)) 
+# Get rid of all one characters words
+title <- title[lapply(X = title, FUN = nchar) != 1]
 
-# k = 143 -> accuracy of 69.31 and kappa of 0.3888
-# k = 145 -> accuracy of 69.38 and kappa of 0.39
+# Get a list of the top 20 words (just the words)
+top_title_words <- names(sort(table(title), decreasing = TRUE)[1:20])
 
-sent_test_pred <- knn(train = sent_train_knn, test = sent_test_knn,
-                      cl = sent_train_labels, k=145)
+# Check if the the words are in the title
+news_train$title_has_word <- ifelse(top_title_words %in% news_train$cleaned_title, 1, 0)
+
+# Apply to test data
+news_test$title_has_word <- ifelse(top_title_words %in% news_test$cleaned_title, 1, 0)
+```
+
+
+### In Text
+
+```{r}
+# Get all the fake news rows
+fake_news <- news_train[news_train$fake == 1, ]
+
+# List of all words
+text <- do.call(c, fake_news$cleaned_text)
+
+# Get rid of all one characters words
+text <- text[lapply(X = text, FUN = nchar) != 1]
+
+# Get a list of the top 20 words (just the words)
+top_text_words <- names(sort(table(text), decreasing = TRUE)[1:20])
+
+# Check if the the words are in the text
+news_train$text_has_word <- ifelse(top_text_words %in% news_train$cleaned_text, 1, 0)
+
+# Apply to test data
+news_test$text_has_word <- ifelse(top_text_words %in% news_test$cleaned_text, 1, 0)
+```
+
+## KNN Model
+
+### Model 1
+```{r}
+# Train and Test
+train_knn <- news_train[,6:13]
+train_knn$cleaned_text <- NULL
+test_knn <- news_test[,6:13]
+test_knn$cleaned_text <- NULL
+train_labels <- news_train$fake
+test_labels <- news_test$fake
+
+str(train_knn)
+# Normalize
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+train_knn <- as.data.frame(lapply(train_knn, normalize))
+test_knn <- as.data.frame(lapply(test_knn[1:6], normalize))
+test_knn$text_has_word <- news_test$text_has_word
+
+sqrt(nrow(train_knn)) 
+
+knn_test_pred <- knn(train = train_knn, test = test_knn,
+                      cl = train_labels, k=143)
 
 #Evaluate model results
-CrossTable(x = sent_test_labels, y = sent_test_pred, prop.chisq=FALSE)
-confusionMatrix(sent_test_labels, sent_test_pred)
+confusionMatrix(data = knn_test_pred, reference = test_labels)
+# Accuracy of 0.5492 and kappa of 0.0583
+```
+
+### Model 2
+```{r}
+# KNN Model with sentiment and top20 words
+train_knn <- sentiment_train
+train_knn$title_has_word <- news_train$title_has_word
+train_knn$text_has_word <- news_train$text_has_word
+
+test_knn <- sentiment_test
+test_knn$title_has_word <- news_test$title_has_word
+test_knn$text_has_word <- news_test$text_has_word
+
+train_knn <- as.data.frame(lapply(train_knn, normalize))
+test_knn <- as.data.frame(lapply(test_knn, normalize))
+test_knn$text_has_word <- news_test$text_has_word
+
+knn_test_pred <- knn(train = train_knn, test = test_knn,
+                      cl = train_labels, k=143)
+confusionMatrix(data = knn_test_pred, reference = test_labels)
+# Accuracy of 0.6876 and kappa of 0.3787
 ```
 
 ## ANN Model
 
 ```{r cache = TRUE}
-sent_train_ann <- sentiment_train
-sent_train_ann$fake <- news_train$fake
-sent_train_ann$fake <- as.numeric(sent_train_ann$fake)
-sent_train_ann$title_word <- news_train$title_word_length
-sent_train_ann$text_word <- news_train$text_word_length
-sent_train_ann$title_char <- news_train$title_character_length
-sent_train_ann$text_char <- news_train$text_character_length
+train_ann <- train_knn
+train_ann$fake <- news_train$fake
+test_ann <- test_knn
+test_ann$fake <- news_test$fake
+train_ann$fake <- as.factor(train_ann$fake)
 
-sent_test_ann <- sentiment_test
-sent_test_ann$fake <- news_test$fake
-sent_test_ann$fake <- as.numeric(sent_test_ann$fake)
-sent_test_ann$title_word <- news_test$title_word_length
-sent_test_ann$text_word <- news_test$text_word_length
-sent_test_ann$title_char <- news_test$title_character_length
-sent_test_ann$text_char <- news_test$text_character_length
-
-normalize <- function(x) {
-  return ((x - min(x)) / (max(x) - min(x)))
-}
-
-#Applying normalization function to entire dataframe
-sent_train_ann <- as.data.frame(lapply(sent_train_ann, normalize))
-sent_test_ann <- as.data.frame(lapply(sent_test_ann, normalize))
-
-
-library(neuralnet)
-ann_model <- neuralnet(formula = fake ~ ., data = sent_train_ann)
+ann_model <- neuralnet(formula = fake ~ ., data = train_ann, linear.output = F, stepmax = 1000000)
 
 # visualize the network topology
 plot(ann_model)
 
 # obtain model results
-results <- compute(ann_model, sent_test_ann)
+results <- compute(ann_model, test_ann)
 # obtain predicted strength values
-ann_results <- results$net.result
-sent_ann_predict <- ifelse(ann_results>0.5,1,0) 
-sent_ann_predict <- as.factor(sent_ann_predict)
+ann_results <- results$net.result[,2]
+ann_predict <- ifelse(ann_results>0.5,1,0) 
+ann_predict <- as.factor(ann_predict)
 
-CrossTable(x = sent_test_labels, y = sent_ann_predict, prop.chisq=FALSE)
-confusionMatrix(sent_test_labels, sent_ann_predict)
+confusionMatrix(data = ann_predict, reference = test_labels)
+# Accuracy 0.6677 and kappa 0.394
 ```
-
-```{r}
-# Get a list of all the fake news
-fake_news <- news_train[news_train$fake == 1, ]
-
-# Use a function to get a list of everything (can't just c(news_train$cleaned_title)
-#test <- do.call(c, news_train$cleaned_title)
-test <- list(news_train$cleaned_title)
-test <- unlist(test)
-
-# Get rid of all one characters words
-test <- test[lapply(X = test, FUN = nchar) != 1]
-
-# Get rid of NULL values
-test <- test[!sapply(test,is.null)]
-
-# Dataframe of the words
-words <- data.frame(matrix(unlist(test)))
-colnames(words) <- "word"
-
-# Sorted by frequency of words, top 20
-freq_words <- count(words, word)
-head(freq_words)
-sorted_words <- freq_words[order(-freq_words$n),]
-top20 <- head(sorted_words, 20)
-head(top20)
-#topwords <- list(top20$"matrix.unlist.test..")
-
-
-# Check if the the words are in the title
-news_train$has_word <- ifelse(top20$word %in% news_train$cleaned_title, 1, 0)
-
-# Compare data to make sure whether it's working
-# confusionMatrix(as.factor(news_train$has_word), as.factor(news_train$fake))
-```
-

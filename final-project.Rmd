@@ -9,6 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Fake News Prediction
+A data set of article texts and corresponding labels if it is fake news were used to create models to try to predict if an article is fake news. We created a logistic regression model, decision tree model, KNN model, ANN model, and combined models to try to find the best way to predict fake news.
+
 ```{r}
 library(tm)
 library(stopwords)
@@ -49,7 +52,7 @@ sentiment_test <- read.csv('test_sentiment1.csv')
 news_test$fake <- as.factor(news_test_result$label) #changed to factor in order to be used in confusion Matrix
 ```
 
-## Data Preperation and Cleaning
+## Data Preparation and Cleaning
 
 ### Train Data
 ```{r }
@@ -187,7 +190,7 @@ LogPredict <- as.factor(LogPredict)
 confusionMatrix(news_test$fake, LogPredict)
 ```
 
-### Analysis of Model
+### Analysis of Logistic Regression Model
 A few interesting takeaways come from our first model, logistic regression. First, all of the independent variables we made (text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment) are significant in predicting if the news article is FAKE or not. Additionally, almost every interaction and the square values of each variable (excludes text_character_length:text_word_length). 
 
 Our log model appears to be a moderately good predictor of if the article is fake news or not, suggested by the Kappa score of 0.4295. Hopefully the following models below will produce results as good or better than the log regression.
@@ -195,6 +198,8 @@ Our log model appears to be a moderately good predictor of if the article is fak
 Note we did not create a linear regression due to our dependent variables being binomial. 
 
 ## Decision Tree
+
+### Model Design
 
 ```{r}
 #building decision tree model
@@ -208,6 +213,7 @@ plot(fakedecisionmodel)
 
 summary(fakedecisionmodel)
 ```
+### Model Testing
 
 ```{r}
 #checking prediction accuracy
@@ -222,6 +228,7 @@ CrossTable(news_test$fake, fakepred)
 confusionMatrix(as.factor(fakepred), news_test$fake, positive = '1')
 # 72.13% Accuracy with 0.4372 Kappa Statistics
 ```
+### Adding Error Cost
 
 ```{r}
 #adding error costs for false negative (missing identifying something as fake news)
@@ -237,7 +244,7 @@ plot(fakecostdecisionmodel)
 summary(fakecostdecisionmodel)
 
 ```
-
+### Model Testing
 ```{r}
 #checking new error cost model prediction accuracy
 
@@ -254,7 +261,7 @@ confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = '
 
 ### Analysis of Decision Tree Model
 
-The first model proved to have a 72.13% accuracy with a 0.4372 Kappa Statistic. We improved the model by adding error cost. We assigned error to the model missing identifying news that is fake (false negative). After this improvement, the false negatives dropped from 729 to 8 with overall model accuracy improving to 78.13% with a 0.538 Kappa Statistic.
+The first model proved to have a 72.13% accuracy with a 0.4372 Kappa Statistic. We improved the model by adding error cost. We assigned error cost to the model missing identifying news that is fake (false negative). This is because there is more cost to labeling an article as true when it is spreading fake news than labeling an article as fake news and fact checking an article that is actually true. After this improvement, the false negatives dropped from 729 to 8 with overall model accuracy improving to 78.13% with a 0.538 Kappa Statistic.
 
 The attribute usage is as followed:
 
@@ -264,7 +271,6 @@ The attribute usage is as followed:
 	 27.34%	text_sentiment
 	 19.23%	text_word_length
 
-	 
 This is consistent with the logistic regression model which saw title word length with the highest magnitude impact and text word length as the lowest magnitude impact on the predicted outcome.
 
 ## Top 20 Words in Fake News
@@ -290,7 +296,6 @@ news_train$title_has_word <- ifelse(top_title_words %in% news_train$cleaned_titl
 # Apply to test data
 news_test$title_has_word <- ifelse(top_title_words %in% news_test$cleaned_title, 1, 0)
 ```
-
 
 ### In Text
 
@@ -367,6 +372,10 @@ confusionMatrix(data = knn_test_pred, reference = test_labels)
 # Accuracy of 0.6876 and kappa of 0.3787
 ```
 
+### Analysis of KNN Models
+
+Model 1 had a 54.92% accuracy, kappa statistic of 0.0583 and 750 false negatives. Model 2 was better with an accuracy of 68.76% and kappa statistic of 0.3787, but had more false negatives with 1030. Since Model 1 has an extremely low kappa statistic, only Model 2 will be used in the combined model.
+
 ## ANN Model
 
 ```{r cache = TRUE}
@@ -391,3 +400,59 @@ ann_predict <- as.factor(ann_predict)
 confusionMatrix(data = ann_predict, reference = test_labels)
 # Accuracy 0.6677 and kappa 0.394
 ```
+### Analysis of ANN Model
+
+This model uses the following variables: sentiment score, if the title has the common words in fake news titles, and if the text has the common words in fake news text. The model is 66.92% accurate, has a kappa statistic of 0.3124, and 499 false negatives.
+
+## Combined Models
+
+```{r}
+#creating new data set using 4 models predictions and the data test real results
+combinedpred <- data.frame(LogPredict, fakecostpred, knn_test_pred,  ann_predict, test_labels)
+
+#making variables numeric
+combinedpred$LogPredict <- ifelse(combinedpred$LogPredict == "1", 1,0)
+combinedpred$fakecostpred <- ifelse(combinedpred$fakecostpred == "1", 1,0)
+combinedpred$knn_test_pred <- ifelse(combinedpred$knn_test_pred == "1", 1,0)
+combinedpred$ann_predict <- ifelse(combinedpred$ann_predict == "1", 1,0)
+combinedpred$test_labels <- ifelse(combinedpred$test_labels == "1", 1,0)
+
+#combining model predictions
+combinedpred$predict <- combinedpred$LogPredict + combinedpred$fakecostpred + combinedpred$knn_test_pred + combinedpred$ann_predict
+
+#creating binary prediction if 1 or more models predict article is fake news
+combinedpred$predict1 <- ifelse(combinedpred$predict > 0, 1, 0)
+
+#creating binary prediction if 2 or more models predict article is fake news
+combinedpred$predict2 <- ifelse(combinedpred$predict > 1, 1, 0)
+
+#creating binary prediction if 3 or more models predict article is fake news
+combinedpred$predict3 <- ifelse(combinedpred$predict > 2, 1, 0)
+
+#creating binary prediction if all 4 models predict article is fake news
+combinedpred$predict4 <- ifelse(combinedpred$predict > 3, 1, 0)
+
+#testing accuracy of combined models
+
+confusionMatrix(as.factor(combinedpred$predict1), as.factor(combinedpred$test_labels))
+```
+positive prediction if 1 or more models predict article is fake news: 67.21% accuracy; 0.2906 kappa statistic; 4 false negatives
+```{r}
+confusionMatrix(as.factor(combinedpred$predict2), as.factor(combinedpred$test_labels))
+```
+positive prediction if 2 or more models predict article is fake news: 73.02% accuracy; 0.5502 kappa statistic; 228 false negatives
+```{r}
+confusionMatrix(as.factor(combinedpred$predict3), as.factor(combinedpred$test_labels))
+```
+positive prediction if 3 or more models predict article is fake news: 74.83% accuracy; 0.4936 kappa statistic; 710 false negatives
+```{r}
+confusionMatrix(as.factor(combinedpred$predict4), as.factor(combinedpred$test_labels))
+```
+positive prediction if all 4 models predict article is fake news: 69.56% accuracy; 0.4097 kappa statistic; 1329 false negatives
+
+### Analysis of Combined Model
+The combined model requiring 3 or more models to predict fake news had the highest accuracy of the combined models with 74.83%. The model only requiring 2 or more models predicting fake news had the highest kappa statistic of the combined models with 0.5502. The model only requiring 1 or more models to predict fake news (as can be expected) had the lowest number of false negatives with only 4.
+
+## Conclusion
+
+The decision tree model had the best prediction of all the models in terms of accuracy and kappa statistic with 78.13% and 0.538, respectively. This model had 8 false negatives. The only model with fewer false negatives was the combined model requiring only 1 of the 4 models to predict fake news to label the article as fake news. This combined model only has a 0.2906 kappa statistic, so overall the decision tree model is still the best model to predict if articles are fake news.

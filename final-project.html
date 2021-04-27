@@ -195,6 +195,9 @@ summary {
 </div>
 
 
+<div id="fake-news-prediction" class="section level1">
+<h1>Fake News Prediction</h1>
+<p>A data set of article texts and corresponding labels if it is fake news were used to create models to try to predict if an article is fake news. We created a logistic regression model, decision tree model, KNN model, ANN model, and combined models to try to find the best way to predict fake news.</p>
 <pre class="r"><code>library(tm)</code></pre>
 <pre><code>## Loading required package: NLP</code></pre>
 <pre class="r"><code>library(stopwords)</code></pre>
@@ -278,8 +281,8 @@ head(news_train)</code></pre>
 sentiment_test &lt;- read.csv(&#39;test_sentiment1.csv&#39;)</code></pre>
 <pre class="r"><code>news_test$fake &lt;- as.factor(news_test_result$label) #changed to factor in order to be used in confusion Matrix</code></pre>
 </div>
-<div id="data-preperation-and-cleaning" class="section level2">
-<h2>Data Preperation and Cleaning</h2>
+<div id="data-preparation-and-cleaning" class="section level2">
+<h2>Data Preparation and Cleaning</h2>
 <div id="train-data" class="section level3">
 <h3>Train Data</h3>
 <pre class="r"><code>library(tokenizers)
@@ -564,8 +567,8 @@ confusionMatrix(news_test$fake, LogPredict)</code></pre>
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
 </div>
-<div id="analysis-of-model" class="section level3">
-<h3>Analysis of Model</h3>
+<div id="analysis-of-logistic-regression-model" class="section level3">
+<h3>Analysis of Logistic Regression Model</h3>
 <p>A few interesting takeaways come from our first model, logistic regression. First, all of the independent variables we made (text_character_length, text_word_length, title_character_length, title_word_length,text_sentiment) are significant in predicting if the news article is FAKE or not. Additionally, almost every interaction and the square values of each variable (excludes text_character_length:text_word_length).</p>
 <p>Our log model appears to be a moderately good predictor of if the article is fake news or not, suggested by the Kappa score of 0.4295. Hopefully the following models below will produce results as good or better than the log regression.</p>
 <p>Note we did not create a linear regression due to our dependent variables being binomial.</p>
@@ -573,6 +576,8 @@ confusionMatrix(news_test$fake, LogPredict)</code></pre>
 </div>
 <div id="decision-tree" class="section level2">
 <h2>Decision Tree</h2>
+<div id="model-design-1" class="section level3">
+<h3>Model Design</h3>
 <pre class="r"><code>#building decision tree model
 library(C50)
 
@@ -590,7 +595,7 @@ plot(fakedecisionmodel)</code></pre>
 ##  = news_train)
 ## 
 ## 
-## C5.0 [Release 2.07 GPL Edition]      Mon Apr 26 22:04:44 2021
+## C5.0 [Release 2.07 GPL Edition]      Tue Apr 27 11:52:57 2021
 ## -------------------------------
 ## 
 ## Class specified by attribute `outcome&#39;
@@ -756,6 +761,9 @@ plot(fakedecisionmodel)</code></pre>
 ## 
 ## 
 ## Time: 0.1 secs</code></pre>
+</div>
+<div id="model-testing-1" class="section level3">
+<h3>Model Testing</h3>
 <pre class="r"><code>#checking prediction accuracy
 
 fakepred &lt;- predict(fakedecisionmodel, news_test)
@@ -828,6 +836,9 @@ confusionMatrix(as.factor(fakepred), news_test$fake, positive = &#39;1&#39;)</co
 ##        &#39;Positive&#39; Class : 1               
 ## </code></pre>
 <pre class="r"><code># 72.13% Accuracy with 0.4372 Kappa Statistics</code></pre>
+</div>
+<div id="adding-error-cost" class="section level3">
+<h3>Adding Error Cost</h3>
 <pre class="r"><code>#adding error costs for false negative (missing identifying something as fake news)
 
 error_cost &lt;- matrix(c(0,0,3,0), nrow = 2)
@@ -849,7 +860,7 @@ error_cost</code></pre>
 ##  = news_train, costs = error_cost)
 ## 
 ## 
-## C5.0 [Release 2.07 GPL Edition]      Mon Apr 26 22:04:52 2021
+## C5.0 [Release 2.07 GPL Edition]      Tue Apr 27 11:53:06 2021
 ## -------------------------------
 ## 
 ## Class specified by attribute `outcome&#39;
@@ -957,6 +968,9 @@ error_cost</code></pre>
 ## 
 ## 
 ## Time: 0.1 secs</code></pre>
+</div>
+<div id="model-testing-2" class="section level3">
+<h3>Model Testing</h3>
 <pre class="r"><code>#checking new error cost model prediction accuracy
 
 fakecostpred &lt;- predict(fakecostdecisionmodel, news_test)
@@ -1028,9 +1042,10 @@ confusionMatrix(as.factor(fakecostpred), as.factor(news_test$fake), positive = &
 ## </code></pre>
 <pre class="r"><code># Accuracy increases to 78.13% with improved Kappa Statistics of 0.538
 # Overall performance has been improved</code></pre>
+</div>
 <div id="analysis-of-decision-tree-model" class="section level3">
 <h3>Analysis of Decision Tree Model</h3>
-<p>The first model proved to have a 72.13% accuracy with a 0.4372 Kappa Statistic. We improved the model by adding error cost. We assigned error to the model missing identifying news that is fake (false negative). After this improvement, the false negatives dropped from 729 to 8 with overall model accuracy improving to 78.13% with a 0.538 Kappa Statistic.</p>
+<p>The first model proved to have a 72.13% accuracy with a 0.4372 Kappa Statistic. We improved the model by adding error cost. We assigned error cost to the model missing identifying news that is fake (false negative). This is because there is more cost to labeling an article as true when it is spreading fake news than labeling an article as fake news and fact checking an article that is actually true. After this improvement, the false negatives dropped from 729 to 8 with overall model accuracy improving to 78.13% with a 0.538 Kappa Statistic.</p>
 <p>The attribute usage is as followed:</p>
 <p>100.00% title_word_length 67.93% text_character_length 32.63% title_character_length 27.34% text_sentiment 19.23% text_word_length</p>
 <p>This is consistent with the logistic regression model which saw title word length with the highest magnitude impact and text word length as the lowest magnitude impact on the predicted outcome.</p>
@@ -1120,26 +1135,26 @@ confusionMatrix(data = knn_test_pred, reference = test_labels)</code></pre>
 ## 
 ##           Reference
 ## Prediction    0    1
-##          0  745  750
-##          1 1594 2111
+##          0  746  753
+##          1 1593 2108
 ##                                           
-##                Accuracy : 0.5492          
-##                  95% CI : (0.5356, 0.5628)
+##                Accuracy : 0.5488          
+##                  95% CI : (0.5352, 0.5624)
 ##     No Information Rate : 0.5502          
-##     P-Value [Acc &gt; NIR] : 0.5611          
+##     P-Value [Acc &gt; NIR] : 0.583           
 ##                                           
-##                   Kappa : 0.0583          
+##                   Kappa : 0.0576          
 ##                                           
 ##  Mcnemar&#39;s Test P-Value : &lt;2e-16          
 ##                                           
-##             Sensitivity : 0.3185          
-##             Specificity : 0.7379          
-##          Pos Pred Value : 0.4983          
-##          Neg Pred Value : 0.5698          
+##             Sensitivity : 0.3189          
+##             Specificity : 0.7368          
+##          Pos Pred Value : 0.4977          
+##          Neg Pred Value : 0.5696          
 ##              Prevalence : 0.4498          
-##          Detection Rate : 0.1433          
-##    Detection Prevalence : 0.2875          
-##       Balanced Accuracy : 0.5282          
+##          Detection Rate : 0.1435          
+##    Detection Prevalence : 0.2883          
+##       Balanced Accuracy : 0.5279          
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
@@ -1167,30 +1182,34 @@ confusionMatrix(data = knn_test_pred, reference = test_labels)</code></pre>
 ## 
 ##           Reference
 ## Prediction    0    1
-##          0 1742 1030
-##          1  597 1831
+##          0 1739 1029
+##          1  600 1832
 ##                                           
-##                Accuracy : 0.6871          
-##                  95% CI : (0.6743, 0.6997)
+##                Accuracy : 0.6867          
+##                  95% CI : (0.6739, 0.6993)
 ##     No Information Rate : 0.5502          
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
 ##                                           
-##                   Kappa : 0.3784          
+##                   Kappa : 0.3775          
 ##                                           
 ##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
 ##                                           
-##             Sensitivity : 0.7448          
-##             Specificity : 0.6400          
-##          Pos Pred Value : 0.6284          
-##          Neg Pred Value : 0.7541          
+##             Sensitivity : 0.7435          
+##             Specificity : 0.6403          
+##          Pos Pred Value : 0.6283          
+##          Neg Pred Value : 0.7533          
 ##              Prevalence : 0.4498          
-##          Detection Rate : 0.3350          
-##    Detection Prevalence : 0.5331          
-##       Balanced Accuracy : 0.6924          
+##          Detection Rate : 0.3344          
+##    Detection Prevalence : 0.5323          
+##       Balanced Accuracy : 0.6919          
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
 <pre class="r"><code># Accuracy of 0.6876 and kappa of 0.3787</code></pre>
+</div>
+<div id="analysis-of-knn-models" class="section level3">
+<h3>Analysis of KNN Models</h3>
+<p>Model 1 had a 54.92% accuracy, kappa statistic of 0.0583 and 750 false negatives. Model 2 was better with an accuracy of 68.76% and kappa statistic of 0.3787, but had more false negatives with 1030. Since Model 1 has an extremely low kappa statistic, only Model 2 will be used in the combined model.</p>
 </div>
 </div>
 <div id="ann-model" class="section level2">
@@ -1242,6 +1261,165 @@ confusionMatrix(data = ann_predict, reference = test_labels)</code></pre>
 ##        &#39;Positive&#39; Class : 0              
 ## </code></pre>
 <pre class="r"><code># Accuracy 0.6677 and kappa 0.394</code></pre>
+<div id="analysis-of-ann-model" class="section level3">
+<h3>Analysis of ANN Model</h3>
+<p>This model uses the following variables: sentiment score, if the title has the common words in fake news titles, and if the text has the common words in fake news text. The model is 66.92% accurate, has a kappa statistic of 0.3124, and 499 false negatives.</p>
+</div>
+</div>
+<div id="combined-models" class="section level2">
+<h2>Combined Models</h2>
+<pre class="r"><code>#creating new data set using 4 models predictions and the data test real results
+combinedpred &lt;- data.frame(LogPredict, fakecostpred, knn_test_pred,  ann_predict, test_labels)
+
+#making variables numeric
+combinedpred$LogPredict &lt;- ifelse(combinedpred$LogPredict == &quot;1&quot;, 1,0)
+combinedpred$fakecostpred &lt;- ifelse(combinedpred$fakecostpred == &quot;1&quot;, 1,0)
+combinedpred$knn_test_pred &lt;- ifelse(combinedpred$knn_test_pred == &quot;1&quot;, 1,0)
+combinedpred$ann_predict &lt;- ifelse(combinedpred$ann_predict == &quot;1&quot;, 1,0)
+combinedpred$test_labels &lt;- ifelse(combinedpred$test_labels == &quot;1&quot;, 1,0)
+
+#combining model predictions
+combinedpred$predict &lt;- combinedpred$LogPredict + combinedpred$fakecostpred + combinedpred$knn_test_pred + combinedpred$ann_predict
+
+#creating binary prediction if 1 or more models predict article is fake news
+combinedpred$predict1 &lt;- ifelse(combinedpred$predict &gt; 0, 1, 0)
+
+#creating binary prediction if 2 or more models predict article is fake news
+combinedpred$predict2 &lt;- ifelse(combinedpred$predict &gt; 1, 1, 0)
+
+#creating binary prediction if 3 or more models predict article is fake news
+combinedpred$predict3 &lt;- ifelse(combinedpred$predict &gt; 2, 1, 0)
+
+#creating binary prediction if all 4 models predict article is fake news
+combinedpred$predict4 &lt;- ifelse(combinedpred$predict &gt; 3, 1, 0)
+
+#testing accuracy of combined models
+
+confusionMatrix(as.factor(combinedpred$predict1), as.factor(combinedpred$test_labels))</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0  638    4
+##          1 1701 2857
+##                                           
+##                Accuracy : 0.6721          
+##                  95% CI : (0.6592, 0.6849)
+##     No Information Rate : 0.5502          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.2906          
+##                                           
+##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
+##                                           
+##             Sensitivity : 0.2728          
+##             Specificity : 0.9986          
+##          Pos Pred Value : 0.9938          
+##          Neg Pred Value : 0.6268          
+##              Prevalence : 0.4498          
+##          Detection Rate : 0.1227          
+##    Detection Prevalence : 0.1235          
+##       Balanced Accuracy : 0.6357          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+<p>positive prediction if 1 or more models predict article is fake news: 67.21% accuracy; 0.2906 kappa statistic; 4 false negatives</p>
+<pre class="r"><code>confusionMatrix(as.factor(combinedpred$predict2), as.factor(combinedpred$test_labels))</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0 1164  228
+##          1 1175 2633
+##                                           
+##                Accuracy : 0.7302          
+##                  95% CI : (0.7179, 0.7422)
+##     No Information Rate : 0.5502          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.434           
+##                                           
+##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
+##                                           
+##             Sensitivity : 0.4976          
+##             Specificity : 0.9203          
+##          Pos Pred Value : 0.8362          
+##          Neg Pred Value : 0.6914          
+##              Prevalence : 0.4498          
+##          Detection Rate : 0.2238          
+##    Detection Prevalence : 0.2677          
+##       Balanced Accuracy : 0.7090          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+<p>positive prediction if 2 or more models predict article is fake news: 73.02% accuracy; 0.5502 kappa statistic; 228 false negatives</p>
+<pre class="r"><code>confusionMatrix(as.factor(combinedpred$predict3), as.factor(combinedpred$test_labels))</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0 1740  704
+##          1  599 2157
+##                                           
+##                Accuracy : 0.7494          
+##                  95% CI : (0.7374, 0.7612)
+##     No Information Rate : 0.5502          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.4958          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 0.003963        
+##                                           
+##             Sensitivity : 0.7439          
+##             Specificity : 0.7539          
+##          Pos Pred Value : 0.7119          
+##          Neg Pred Value : 0.7827          
+##              Prevalence : 0.4498          
+##          Detection Rate : 0.3346          
+##    Detection Prevalence : 0.4700          
+##       Balanced Accuracy : 0.7489          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+<p>positive prediction if 3 or more models predict article is fake news: 74.83% accuracy; 0.4936 kappa statistic; 710 false negatives</p>
+<pre class="r"><code>confusionMatrix(as.factor(combinedpred$predict4), as.factor(combinedpred$test_labels))</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0 2082 1330
+##          1  257 1531
+##                                           
+##                Accuracy : 0.6948          
+##                  95% CI : (0.6821, 0.7073)
+##     No Information Rate : 0.5502          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.4082          
+##                                           
+##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
+##                                           
+##             Sensitivity : 0.8901          
+##             Specificity : 0.5351          
+##          Pos Pred Value : 0.6102          
+##          Neg Pred Value : 0.8563          
+##              Prevalence : 0.4498          
+##          Detection Rate : 0.4004          
+##    Detection Prevalence : 0.6562          
+##       Balanced Accuracy : 0.7126          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+<p>positive prediction if all 4 models predict article is fake news: 69.56% accuracy; 0.4097 kappa statistic; 1329 false negatives</p>
+<div id="analysis-of-combined-model" class="section level3">
+<h3>Analysis of Combined Model</h3>
+<p>The combined model requiring 3 or more models to predict fake news had the highest accuracy of the combined models with 74.83%. The model only requiring 2 or more models predicting fake news had the highest kappa statistic of the combined models with 0.5502. The model only requiring 1 or more models to predict fake news (as can be expected) had the lowest number of false negatives with only 4.</p>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>The decision tree model had the best prediction of all the models in terms of accuracy and kappa statistic with 78.13% and 0.538, respectively. This model had 8 false negatives. The only model with fewer false negatives was the combined model requiring only 1 of the 4 models to predict fake news to label the article as fake news. This combined model only has a 0.2906 kappa statistic, so overall the decision tree model is still the best model to predict if articles are fake news.</p>
+</div>
 </div>
 
 

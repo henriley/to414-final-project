@@ -8,6 +8,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Introduction
+Fake news is one of the biggest problems in the digital age, providing false information to our society. In-depth understandings with various approaches (considering subjective indicators) are needed to respond to fake news.  In other words, judging fake news cannot be done only by objective indicators. Fake news generally contains specific characteristics to attract attention to maximize advertising revenue, while it seems similar to credible journalism. 
+
+Fake news can cause many business problems, as it reaches many ordinary readers who cannot discern it from the journalism. Therefore, these predictive models are significantly essential in preventing many social problems caused by fake news. Various linguistic features such as letters, natural languages led AI to distract in predict whether the information is fake or not. Therefore, we added some predictor variables to build reliable prediction models based on clues that fake news has in common.
+Our report will include logistic regression models, decision tree model, KNN model, ANN model, and combined model. To improve the model's performance, we created the sentiment score and top 20 words to the given data. We believe that the two variables will allow our models to perform better.
 
 # Fake News Prediction
 A data set of article texts and corresponding labels if it is fake news were used to create models to try to predict if an article is fake news. We created a logistic regression model, decision tree model, KNN model, ANN model, and combined models to try to find the best way to predict fake news.
@@ -155,6 +160,8 @@ summary(news_train$text_word_length)
 summary(news_train$title_character_length)
 summary(news_train$title_word_length)
 summary(news_train$text_sentiment)
+
+table(news_train$fake)
 ```
 
 The Dependent Variable we are hoping to predict is whether or not an article is "fake" news, this is a binomial variable.
@@ -454,5 +461,11 @@ positive prediction if all 4 models predict article is fake news: 69.56% accurac
 The combined model requiring 3 or more models to predict fake news had the highest accuracy of the combined models with 74.83%. The model only requiring 2 or more models predicting fake news had the highest kappa statistic of the combined models with 0.5502. The model only requiring 1 or more models to predict fake news (as can be expected) had the lowest number of false negatives with only 4.
 
 ## Conclusion
+Advances in technology have allowed fake news to approach the public quickly. Fake information can bring a big wave of key events in societies, including presidential elections and stock price, meaning its risks and ripple effects are beyond our expectations. However, with the artificial intelligence prediction models, we would be able to control the spread of fake news more efficiently than traditional methods. Although decision tree models have shown the best performance among the things we have created in this project, the results would vary depending on the data and approaches to improve further models.
 
-The decision tree model had the best prediction of all the models in terms of accuracy and kappa statistic with 78.13% and 0.538, respectively. This model had 8 false negatives. The only model with fewer false negatives was the combined model requiring only 1 of the 4 models to predict fake news to label the article as fake news. This combined model only has a 0.2906 kappa statistic, so overall the decision tree model is still the best model to predict if articles are fake news.
+The decision tree model had the best prediction of all the models in terms of accuracy and kappa statistic with 78.13% and 0.538, respectively. This model had 8 false negatives. The only model with fewer false negatives was the combined model requiring only 1 of the 4 models to predict fake news to label the article as fake news. This combined model only has a 0.2906 kappa statistic, so overall the decision tree model is still the best model to predict if articles are fake news. 
+
+The limitation of our prediction model was not only having irregular in the given data but also contained many errors. Those could negatively affect the performance of all types of predictive models.
+For future improvements, we would consider adding more key predictor variables, such as the combination of words most commonly used in fake news (n-gram) and using LSTM.
+
+Our team's submission score by kaggle was 0.63397, but we believe this is a great first step of distinguishing fake news. 
